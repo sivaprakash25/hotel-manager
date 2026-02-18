@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """
-Online license activation server. Run on your host (e.g. PythonAnywhere, VPS).
-Set env FLASK_ENV=production and use a proper WSGI server (gunicorn) in production.
-Usage: python license_server.py   (dev: http://127.0.0.1:5000)
+License activation server for Render.com.
 """
 import os
 import sqlite3
@@ -12,7 +10,6 @@ from flask import Flask, request, jsonify
 from license_utils import parse_license_key
 
 app = Flask(__name__)
-# Max activations per license key (1 = single installation, increase for multi-device)
 MAX_ACTIVATIONS_PER_KEY = int(os.environ.get("MAX_ACTIVATIONS_PER_KEY", "1"))
 DB_PATH = os.environ.get("LICENSE_DB_PATH", "license_activations.db")
 
@@ -34,9 +31,6 @@ def get_db():
 
 @app.route("/api/activate", methods=["POST"])
 def activate():
-    """POST JSON: { "license_key": "...", "client_id": "optional-machine-id" }
-    Returns: { "success": true, "expiry_date": "YYYY-MM-DD"|null } or { "success": false, "message": "..." }
-    """
     if not request.is_json:
         return jsonify({"success": False, "message": "Content-Type must be application/json"}), 400
     data = request.get_json() or {}
@@ -87,7 +81,7 @@ def activate():
         )
         conn.commit()
         conn.close()
-    except Exception as e:
+    except Exception:
         return jsonify({"success": False, "message": "Server error"}), 500
     return jsonify({
         "success": True,
@@ -98,9 +92,6 @@ def activate():
 
 @app.route("/api/verify", methods=["POST"])
 def verify():
-    """POST JSON: { "license_key": "...", "client_id": "..." }
-    Returns success if this client_id is recorded for this key (optional periodic check).
-    """
     if not request.is_json:
         return jsonify({"success": False, "message": "Content-Type must be application/json"}), 400
     data = request.get_json() or {}

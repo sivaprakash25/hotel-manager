@@ -1,19 +1,10 @@
-# Render.com Blueprint: deploy the license activation server.
-# Docs: https://render.com/docs/blueprint-spec
-#
-# 1. In Render Dashboard, add Environment Variable LICENSE_SECRET (Secret) with the
-#    SAME value as in license_keygen.py so generated keys validate.
-# 2. Connect this repo and deploy (or create Web Service with the settings below).
-
 services:
   - type: web
     name: resortmanager-license-server
     runtime: python
     region: oregon
-
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn license_server:app --bind 0.0.0.0:$PORT
-
     envVars:
       - key: MAX_ACTIVATIONS_PER_KEY
         value: "1"

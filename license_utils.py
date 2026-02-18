@@ -1,6 +1,5 @@
 """
-Shared license validation for app and license server.
-Key format: HM-{CODE}-{YYYYMMDD}-{16 hex signature}
+License key validation. LICENSE_SECRET from env on Render (set in dashboard).
 """
 import os
 import re
@@ -9,7 +8,6 @@ import hashlib
 from datetime import datetime
 from typing import Tuple, Optional
 
-# Use env LICENSE_SECRET on server (e.g. Render); else fallback. Must match license_keygen.py.
 _raw = os.environ.get("LICENSE_SECRET", "ResortManager-License-Secret-Change-Me-In-Production-8f3a2b1c")
 LICENSE_SECRET = _raw.encode("utf-8") if isinstance(_raw, str) else _raw
 
@@ -28,7 +26,6 @@ def verify_signature(payload: str, signature: str) -> bool:
 
 
 def parse_license_key(license_key: str) -> Tuple[bool, Optional[str]]:
-    """Validate format and signature; return (valid, expiry_yyyy_mm_dd or None for perpetual)."""
     if not license_key or not license_key.strip():
         return False, None
     key = license_key.strip()
