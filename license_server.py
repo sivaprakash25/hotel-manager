@@ -177,6 +177,96 @@ def health():
     return jsonify({"status": "ok"}), 200
 
 
+def _require_admin():
+    """Check admin_secret from JSON body or query param. Returns (None, None) if OK, else (response, status)."""
+    secret = ""
+    if request.is_json and request.get_json(silent=True):
+        secret = (request.get_json().get("admin_secret") or "").strip()
+    if not secret:
+        secret = (request.args.get("admin_secret") or "").strip()
+    expected = os.environ.get("ADMIN_SECRET", "").strip()
+    if not expected or secret != expected:
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    return None, None
+
+
+@app.route("/api/admin/activations", methods=["GET"])
+def admin_list_activations():
+    """Vendor-only: list all activations. GET ?admin_secret=YOUR_SECRET or POST JSON { admin_secret }."""
+    err, status = _require_admin()
+    if err is not None:
+        return err, status
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT license_key, client_id, expiry_date, activated_at, activation_token
+            FROM activations ORDER BY activated_at DESC
+        """)
+        rows = cur.fetchall()
+        conn.close()
+        out = []
+        for r in rows:
+            out.append({
+                "license_key": r[0],
+                "client_id": r[1],
+                "expiry_date": r[2] or "Perpetual",
+                "activated_at": r[3],
+                "activation_token": (r[4] or "")[:16] + "..." if (r[4] and len(r[4]) > 16) else (r[4] or ""),
+            })
+        return jsonify({"success": True, "count": len(out), "activations": out}), 200
+    except Exception:
+        return jsonify({"success": False, "message": "Server error"}), 500
+
+
+@app.route("/api/admin/extend", methods=["POST"])
+def admin_extend():
+    """Vendor-only: extend expiry for an existing activation (e.g. after customer pays for renewal).
+    POST JSON: { "admin_secret": "...", "activation_token": "..." or "license_key"+"client_id", "new_expiry": "YYYY-MM-DD" }
+    Set ADMIN_SECRET env on Render; keep it secret."""
+    if not request.is_json:
+        return jsonify({"success": False, "message": "Content-Type must be application/json"}), 400
+    err, status = _require_admin()
+    if err is not None:
+        return err, status
+    data = request.get_json() or {}
+    new_expiry = (data.get("new_expiry") or "").strip()
+    if len(new_expiry) != 10 or new_expiry[4] != "-" or new_expiry[7] != "-":
+        return jsonify({"success": False, "message": "new_expiry must be YYYY-MM-DD"}), 400
+    try:
+        datetime.strptime(new_expiry, "%Y-%m-%d")
+    except ValueError:
+        return jsonify({"success": False, "message": "Invalid new_expiry date"}), 400
+    activation_token = (data.get("activation_token") or "").strip()
+    license_key = (data.get("license_key") or "").strip()
+    client_id = (data.get("client_id") or "").strip()
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        if activation_token:
+            cur.execute(
+                "UPDATE activations SET expiry_date = ? WHERE activation_token = ?",
+                (new_expiry, activation_token),
+            )
+            updated = cur.rowcount
+        elif license_key and client_id:
+            cur.execute(
+                "UPDATE activations SET expiry_date = ? WHERE license_key = ? AND client_id = ?",
+                (new_expiry, license_key, client_id),
+            )
+            updated = cur.rowcount
+        else:
+            conn.close()
+            return jsonify({"success": False, "message": "Provide activation_token or (license_key + client_id)"}), 400
+        conn.commit()
+        conn.close()
+        if updated == 0:
+            return jsonify({"success": False, "message": "No activation found"}), 200
+        return jsonify({"success": True, "message": f"Expiry extended to {new_expiry}"}), 200
+    except Exception:
+        return jsonify({"success": False, "message": "Server error"}), 500
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=os.environ.get("FLASK_DEBUG", "0") == "1")
