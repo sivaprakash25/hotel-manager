@@ -1,0 +1,37 @@
+# Hotel Management Software - Dependencies
+
+# GUI Framework
+# Using tkinter (built-in) for GUI, no additional dependency needed
+
+# Database
+# SQLite is built-in, no additional dependency needed
+
+# PDF Generation
+reportlab>=4.0.0
+
+# Excel Export
+openpyxl>=3.1.0
+
+# Data Visualization
+matplotlib>=3.7.0
+
+# Date picker for GUI
+tkcalendar>=1.6.0
+
+# Date/Time handling (though datetime is built-in)
+# pandas for data manipulation (optional but useful)
+pandas>=2.0.0
+
+# Password hashing
+bcrypt>=4.0.0
+
+# Cryptography for licensing
+cryptography>=41.0.0
+
+# Online license server (run license_server.py or deploy to Render)
+flask>=3.0.0
+gunicorn>=21.0.0
+
+# For creating executable (pyinstaller)
+# pyinstaller>=5.13.0  # Uncomment when building executable
+
