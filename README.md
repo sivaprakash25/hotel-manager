@@ -35,6 +35,8 @@ Your repo will contain:
 3. Add **Environment** variables (Render Dashboard → your service → **Environment** → Add):
    - **LICENSE_SECRET** (Secret) = same value as in your `license_keygen.py`.
    - **ADMIN_SECRET** (Secret) = a strong password only you know; used to list activations and extend expiry.
+   - **APP_LATEST_VERSION** (optional) = current app version for update check (e.g. `1.0.0`). Customers see “New update available” when this is newer than their app.
+   - **APP_DOWNLOAD_URL** (optional) = URL to download the new installer/exe (e.g. your website or file host). Used when the customer clicks “Download update”.
 4. Deploy. Your URL will be like `https://resortmanager-license-server.onrender.com`.
 
 ### Where to store ADMIN_SECRET

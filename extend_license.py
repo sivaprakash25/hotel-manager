@@ -19,7 +19,23 @@ import json
 import urllib.request
 import urllib.error
 
+def _load_dotenv():
+    """Load .env from script directory into os.environ (no extra deps)."""
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+    if not os.path.isfile(env_path):
+        return
+    with open(env_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, _, value = line.partition("=")
+                key = key.strip()
+                value = value.strip().strip('"').strip("'")
+                if key:
+                    os.environ.setdefault(key, value)
+
 def main():
+    _load_dotenv()
     base_url = (os.environ.get("LICENSE_SERVER_URL") or "").strip().rstrip("/")
     admin_secret = (os.environ.get("ADMIN_SECRET") or "").strip()
     if not base_url or not admin_secret:

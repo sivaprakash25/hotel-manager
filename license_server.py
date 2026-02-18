@@ -177,6 +177,14 @@ def health():
     return jsonify({"status": "ok"}), 200
 
 
+@app.route("/api/update-info", methods=["GET"])
+def update_info():
+    """Public: latest app version and download URL for update check. Set APP_LATEST_VERSION and APP_DOWNLOAD_URL in Render env."""
+    version = (os.environ.get("APP_LATEST_VERSION") or "1.0.0").strip()
+    download_url = (os.environ.get("APP_DOWNLOAD_URL") or "").strip()
+    return jsonify({"version": version, "download_url": download_url}), 200
+
+
 def _require_admin():
     """Check admin_secret from JSON body or query param. Returns (None, None) if OK, else (response, status)."""
     secret = ""
